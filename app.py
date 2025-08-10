@@ -1,8 +1,10 @@
-from flask import Flask, request, jsonify, render_template
+from flask import Flask, request, render_template, jsonify
 from nebula_hash import NebulaHash
+import hashlib
 import os
+import math
 
-app = Flask(__name__)
+app = Flask(__name__, template_folder=os.path.join(os.path.dirname(__file__), 'templates'))
 
 @app.route('/', methods=['GET', 'POST'])
 def home():
@@ -11,6 +13,7 @@ def home():
         hash_length = int(request.form.get('hash_length', 32))
         
         try:
+            # Compute hashes
             nebula = NebulaHash.compute(input_text, hash_length)
             sha256 = hashlib.sha256(input_text.encode()).hexdigest()
             
@@ -34,6 +37,10 @@ def home():
                                hash_length=hash_length)
     
     return render_template('index.html')
+
+@app.route('/health')
+def health_check():
+    return jsonify({"status": "healthy", "service": "NebulaHash API"})
 
 if __name__ == '__main__':
     port = int(os.environ.get("PORT", 10000))
