@@ -2,39 +2,24 @@ import os
 from flask import Flask, render_template, request, jsonify
 from nebula_hash import NebulaHash
 import hashlib
-import math
 
-# Get absolute path to templates directory
-base_dir = os.path.dirname(os.path.abspath(__file__))
-template_dir = os.path.join(base_dir, 'templates')
+# Configure absolute paths
+BASE_DIR = os.path.dirname(os.path.abspath(__file__))
+TEMPLATE_DIR = os.path.join(BASE_DIR, 'templates')
 
-app = Flask(__name__, template_folder=template_dir)
-
-# Replacement for deprecated before_first_request
-@app.before_request
-def first_request():
-    if not hasattr(app, 'initialized'):
-        print("\n=== Startup Verification ===")
-        print(f"Base directory: {base_dir}")
-        print(f"Template directory: {template_dir}")
-        print(f"Templates exists: {os.path.exists(template_dir)}")
-        if os.path.exists(template_dir):
-            print(f"Template files: {os.listdir(template_dir)}")
-        print("=========================\n")
-        app.initialized = True
+app = Flask(__name__, template_folder=TEMPLATE_DIR)
 
 @app.route('/', methods=['GET', 'POST'])
 def home():
-    # Debug output for every request
-    print(f"\nCurrent working directory: {os.getcwd()}")
-    print(f"Template path verification: {os.path.exists(template_dir)}")
+    # Verify template directory exists
+    if not os.path.exists(TEMPLATE_DIR):
+        return "Template directory not found. Expected at: " + TEMPLATE_DIR, 500
     
     if request.method == 'POST':
         input_text = request.form.get('input_text', '')
         hash_length = int(request.form.get('hash_length', 32))
         
         try:
-            # Compute hashes
             nebula = NebulaHash.compute(input_text, hash_length)
             sha256 = hashlib.sha256(input_text.encode()).hexdigest()
             
@@ -52,7 +37,6 @@ def home():
                                sha256_hash=sha256,
                                similarity=f"{similarity:.2f}%")
         except Exception as e:
-            print(f"Error during hash computation: {str(e)}")
             return render_template('index.html',
                                error=str(e),
                                input_text=input_text,
@@ -60,29 +44,16 @@ def home():
     
     return render_template('index.html')
 
-@app.route('/health')
-def health_check():
-    """Endpoint for health checks"""
-    return jsonify({
-        "status": "healthy",
-        "service": "NebulaHash API",
-        "template_dir": template_dir,
-        "template_exists": os.path.exists(template_dir)
-    })
-
 @app.route('/debug')
 def debug():
-    """Debug endpoint to check file structure"""
-    import os
     return jsonify({
-        "current_directory": os.getcwd(),
-        "base_directory": base_dir,
-        "template_directory": template_dir,
-        "directory_contents": os.listdir(base_dir),
-        "templates_contents": os.listdir(template_dir) if os.path.exists(template_dir) else "Missing"
+        "base_dir": BASE_DIR,
+        "template_dir": TEMPLATE_DIR,
+        "template_exists": os.path.exists(TEMPLATE_DIR),
+        "files": os.listdir(BASE_DIR),
+        "templates": os.listdir(TEMPLATE_DIR) if os.path.exists(TEMPLATE_DIR) else "Missing"
     })
 
 if __name__ == '__main__':
     port = int(os.environ.get("PORT", 10000))
-    print(f"Starting server with template directory: {template_dir}")
     app.run(host='0.0.0.0', port=port)
