@@ -10,16 +10,18 @@ template_dir = os.path.join(base_dir, 'templates')
 
 app = Flask(__name__, template_folder=template_dir)
 
-@app.before_first_request
-def verify_setup():
-    """Debugging function to verify paths on deployment"""
-    print("\n=== Startup Verification ===")
-    print(f"Base directory: {base_dir}")
-    print(f"Template directory: {template_dir}")
-    print(f"Templates exists: {os.path.exists(template_dir)}")
-    if os.path.exists(template_dir):
-        print(f"Template files: {os.listdir(template_dir)}")
-    print("=========================\n")
+# Replacement for deprecated before_first_request
+@app.before_request
+def first_request():
+    if not hasattr(app, 'initialized'):
+        print("\n=== Startup Verification ===")
+        print(f"Base directory: {base_dir}")
+        print(f"Template directory: {template_dir}")
+        print(f"Templates exists: {os.path.exists(template_dir)}")
+        if os.path.exists(template_dir):
+            print(f"Template files: {os.listdir(template_dir)}")
+        print("=========================\n")
+        app.initialized = True
 
 @app.route('/', methods=['GET', 'POST'])
 def home():
